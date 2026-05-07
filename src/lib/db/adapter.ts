@@ -1,17 +1,17 @@
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 
-function tryGetEnv(name: string): string | null {
+function mustGetEnv(name: string): string {
   const v = process.env[name];
-  return v && v.trim() ? v : null;
+  if (!v) throw new Error(`${name} is required`);
+  return v;
 }
 
-export function getMariaDbAdapterFromEnv(): PrismaMariaDb | null {
-  const raw = tryGetEnv("DATABASE_URL");
-  if (!raw) return null;
+export function getMariaDbAdapterFromEnv() {
+  const raw = mustGetEnv("DATABASE_URL");
   const u = new URL(raw);
 
   const database = u.pathname?.replace(/^\//, "");
-  if (!database) return null;
+  if (!database) throw new Error("DATABASE_URL must include a database name");
 
   return new PrismaMariaDb({
     host: u.hostname,

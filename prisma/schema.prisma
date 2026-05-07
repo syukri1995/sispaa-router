@@ -1,0 +1,193 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum ComplaintStatus {
+  SUBMITTED
+  ASSIGNED
+  ACCEPTED
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum ComplaintPriority {
+  Low
+  Medium
+  High
+  Critical
+}
+
+enum ActorType {
+  AI
+  WORKER
+  ADMIN
+  SYSTEM
+}
+
+enum WorkerRole {
+  WORKER
+  ADMIN
+}
+
+enum AssignmentStatus {
+  ASSIGNED
+  ACCEPTED
+  IN_PROGRESS
+  RESOLVED
+  CANCELLED
+}
+
+enum EscalationLevel {
+  WARNING
+  AGENCY
+  MANAGEMENT
+}
+
+model Agency {
+  id                  String   @id @default(cuid())
+  code                String   @unique
+  name                String
+  supportedCategories Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  workers    Worker[]
+  complaints Complaint[]
+
+  @@index([code])
+}
+
+model Worker {
+  id               String     @id @default(cuid())
+  email            String     @unique
+  passwordHash     String
+  role             WorkerRole @default(WORKER)
+  active           Boolean    @default(true)
+  availabilityNote String?
+  currentWorkload  Int        @default(0)
+  specializations  Json?
+
+  agencyId String?
+  agency   Agency? @relation(fields: [agencyId], references: [id])
+
+  assignedComplaints Complaint[]  @relation("ComplaintAssignedWorker")
+  assignments        Assignment[]
+  actionLogs         ActionLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([role])
+  @@index([agencyId])
+  @@index([active])
+}
+
+model Complaint {
+  id          String @id @default(cuid())
+  trackingId  String @unique
+  title       String
+  description String
+  imageUrls   Json?
+
+  category String?
+  priority ComplaintPriority @default(Medium)
+  status   ComplaintStatus   @default(SUBMITTED)
+
+  agencyId String?
+  agency   Agency? @relation(fields: [agencyId], references: [id])
+
+  assignedWorkerId String?
+  assignedWorker   Worker? @relation("ComplaintAssignedWorker", fields: [assignedWorkerId], references: [id])
+
+  aiSummary   String? @db.Text
+  aiReasoning String? @db.Text
+
+  slaDueAt        DateTime?
+  closedAt        DateTime?
+  lastEscalatedAt DateTime?
+
+  assignments    Assignment[]
+  actionLogs     ActionLog[]
+  escalationLogs EscalationLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([trackingId])
+  @@index([status])
+  @@index([priority])
+  @@index([agencyId])
+  @@index([assignedWorkerId])
+  @@index([slaDueAt])
+}
+
+model Assignment {
+  id          String    @id @default(cuid())
+  complaintId String
+  complaint   Complaint @relation(fields: [complaintId], references: [id])
+
+  workerId String
+  worker   Worker @relation(fields: [workerId], references: [id])
+
+  status     AssignmentStatus @default(ASSIGNED)
+  assignedAt DateTime         @default(now())
+  acceptedAt DateTime?
+  startedAt  DateTime?
+  resolvedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([complaintId, status])
+  @@index([complaintId])
+  @@index([workerId])
+  @@index([status])
+}
+
+model ActionLog {
+  id          String     @id @default(cuid())
+  complaintId String?
+  complaint   Complaint? @relation(fields: [complaintId], references: [id])
+
+  workerId String?
+  worker   Worker? @relation(fields: [workerId], references: [id])
+
+  actorType ActorType
+  eventType String
+  message   String
+  metadata  Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([complaintId])
+  @@index([workerId])
+  @@index([actorType])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+model EscalationLog {
+  id          String    @id @default(cuid())
+  complaintId String
+  complaint   Complaint @relation(fields: [complaintId], references: [id])
+
+  level       EscalationLevel @default(WARNING)
+  reason      String
+  triggeredAt DateTime        @default(now())
+  resolvedAt  DateTime?
+
+  @@index([complaintId])
+  @@index([level])
+  @@index([triggeredAt])
+}
