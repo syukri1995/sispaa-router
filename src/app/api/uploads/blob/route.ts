@@ -1,12 +1,7 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { requireRole } from "@/lib/auth/middleware";
-
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const auth = await requireRole(["WORKER", "ADMIN"]);
-  if (!auth.ok) return auth.response;
-
   const token = process.env.BLOB_READ_WRITE_TOKEN;
   if (!token) {
     return NextResponse.json(
@@ -29,7 +24,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return {
         allowedContentTypes: ["image/jpeg", "image/png", "image/webp"],
         validUntil,
-        tokenPayload: JSON.stringify({ scope: "complaint_evidence", sub: auth.session.sub, role: auth.session.role }),
+        tokenPayload: JSON.stringify({ scope: "complaint_evidence" }),
       };
     },
     onUploadCompleted: async () => {
