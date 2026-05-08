@@ -5,11 +5,18 @@ declare global {
   var __sispaaPrisma: PrismaClient | undefined;
 }
 
-export const prisma: PrismaClient =
-  globalThis.__sispaaPrisma ??
-  new PrismaClient({
-    adapter: getMariaDbAdapterFromEnv(),
-  });
+function getPrismaClient(): PrismaClient {
+  if (!globalThis.__sispaaPrisma) {
+    globalThis.__sispaaPrisma = new PrismaClient({
+      adapter: getMariaDbAdapterFromEnv(),
+    });
+  }
+  return globalThis.__sispaaPrisma;
+}
 
-if (process.env.NODE_ENV !== "production") globalThis.__sispaaPrisma = prisma;
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    return (getPrismaClient() as any)[prop];
+  },
+});
 
