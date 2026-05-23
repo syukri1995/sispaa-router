@@ -31,9 +31,12 @@ export async function POST(req: Request) {
 
   const trackingId = makeTrackingId();
 
-  const intake = await intakeAgent({ title, description });
-  const classification = await classificationAgent({ title, description });
-  const priority = await priorityAgent({ title, description });
+  // ⚡ Bolt: Run independent AI agents in parallel to reduce API latency
+  const [intake, classification, priority] = await Promise.all([
+    intakeAgent({ title, description }),
+    classificationAgent({ title, description }),
+    priorityAgent({ title, description }),
+  ]);
   const routing = await routingAgent({
     category: classification.data.category,
     intent: intake.data.intent,
