@@ -72,7 +72,7 @@ export function MapPickerLeaflet(props: {
   const [searching, setSearching] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const pos = props.value ? ([props.value.lat, props.value.lng] as const) : null;
+  const pos = props.value ? ([props.value.lat, props.value.lng] as [number, number]) : null;
 
   // Auto-search when the parent provides a detected location string.
   useEffect(() => {

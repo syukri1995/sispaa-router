@@ -5,7 +5,9 @@ import { intakeAgent } from "@/lib/agents/intakeAgent";
 import { priorityAgent } from "@/lib/agents/priorityAgent";
 import { routingAgent } from "@/lib/agents/routingAgent";
 
-function ruleBasedAgency(input: { title: string; description: string }) {
+type AgencyCode = "JKR" | "MOT" | "COUNCIL" | "AKSB";
+
+function ruleBasedAgency(input: { title: string; description: string }): { agencyCode: AgencyCode; reason: string } | null {
   const t = `${input.title}\n${input.description}`.toLowerCase();
 
   // Utilities: broken pipes / water leaks (not perfectly represented in our 3-agency list).
@@ -15,7 +17,7 @@ function ruleBasedAgency(input: { title: string; description: string }) {
       t
     )
   ) {
-    return { agencyCode: "AKSB" as const, reason: "Rule-based routing: water supply / pipe issues are handled by AKSB." };
+    return { agencyCode: "AKSB", reason: "Rule-based routing: water supply / pipe issues are handled by AKSB." };
   }
 
   return null;

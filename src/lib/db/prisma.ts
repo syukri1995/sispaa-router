@@ -1,4 +1,4 @@
-import { PrismaClient } from "@/generated/prisma/client.ts";
+import { PrismaClient } from "@/generated/prisma/client";
 import { getMariaDbAdapterFromEnv } from "@/lib/db/adapter";
 
 declare global {
