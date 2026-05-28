@@ -1,14 +1,4 @@
 {
-  "rewrites": [
-    {
-      "source": "/api/complaints",
-      "destination": "https://sispaa-router-backend.onrender.com/api/complaints"
-    },
-    {
-      "source": "/api/complaints/(.*)",
-      "destination": "https://sispaa-router-backend.onrender.com/api/complaints/$1"
-    }
-  ],
   "crons": [
     {
       "path": "/api/automation/monitor",
