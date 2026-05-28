@@ -2,11 +2,17 @@
   "name": "sispaa-router",
   "version": "0.1.0",
   "private": true,
+  "_moduleAliases": {
+    "@": "src"
+  },
   "scripts": {
     "dev": "node --use-system-ca ./node_modules/next/dist/bin/next dev",
     "build": "npx prisma generate && next build",
     "start": "node --use-system-ca ./node_modules/next/dist/bin/next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "backend:dev": "node --use-system-ca ./node_modules/tsx/dist/cli.mjs watch server/src/index.ts",
+    "backend:build": "tsc -p server/tsconfig.server.json",
+    "backend:start": "node --use-system-ca ./node_modules/tsx/dist/cli.mjs server/src/index.ts"
   },
   "prisma": {
     "seed": "node --loader ts-node/esm prisma/seed.ts"
@@ -20,11 +26,14 @@
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cors": "^2.8.6",
     "date-fns": "^4.1.0",
+    "express": "^5.2.1",
     "jose": "^6.2.3",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.14.0",
     "mariadb": "^3.5.2",
+    "module-alias": "^2.3.4",
     "next": "16.2.5",
     "prisma": "^7.8.0",
     "react": "19.2.4",
@@ -38,6 +47,8 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^20",
     "@types/react": "^19",
