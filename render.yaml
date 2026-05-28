@@ -7,7 +7,7 @@ services:
     branch: main
     autoDeploy: true
     healthCheckPath: /healthz
-    buildCommand: npm ci && npx prisma generate && npm run backend:build
+    buildCommand: npm ci --include=dev && npx prisma generate && npm run backend:build
     startCommand: npm run backend:start
     envVars:
       - key: NODE_ENV
