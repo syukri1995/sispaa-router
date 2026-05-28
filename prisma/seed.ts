@@ -32,6 +32,11 @@ async function main() {
       supportedCategories: ["Road Damage", "Drainage"],
     },
     {
+      code: "AKSB",
+      name: "AKSB",
+      supportedCategories: ["Drainage", "General"],
+    },
+    {
       code: "COUNCIL",
       name: "Local Council",
       supportedCategories: ["Drainage", "Public Safety", "General"],

@@ -104,6 +104,14 @@ model Complaint {
   priority ComplaintPriority @default(Medium)
   status   ComplaintStatus   @default(SUBMITTED)
 
+  locationText String?
+  gpsLat       Float?
+  gpsLng       Float?
+  gpsConfidence Float?
+
+  reporterIcHash  String?
+  reporterIcLast4 String?
+
   agencyId String?
   agency   Agency? @relation(fields: [agencyId], references: [id])
 
@@ -120,6 +128,10 @@ model Complaint {
   assignments    Assignment[]
   actionLogs     ActionLog[]
   escalationLogs EscalationLog[]
+  evidenceImages EvidenceImage[]
+
+  dedupOverrideAt     DateTime?
+  dedupOverrideReason String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -130,6 +142,23 @@ model Complaint {
   @@index([agencyId])
   @@index([assignedWorkerId])
   @@index([slaDueAt])
+  @@index([reporterIcLast4])
+  @@index([dedupOverrideAt])
+}
+
+model EvidenceImage {
+  id          String   @id @default(cuid())
+  complaintId String
+  complaint   Complaint @relation(fields: [complaintId], references: [id])
+
+  url   String
+  phash String?
+
+  createdAt DateTime @default(now())
+
+  @@index([complaintId])
+  @@index([createdAt])
+  @@index([phash])
 }
 
 model Assignment {

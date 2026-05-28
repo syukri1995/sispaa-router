@@ -4,6 +4,7 @@ import { AlertTriangle } from "lucide-react";
 
 import { SlaBadge } from "@/components/dashboard/SlaBadge";
 import { StatCard } from "@/components/dashboard/StatCard";
+import { NextActionButton } from "@/components/dashboard/NextActionButton";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PriorityBadge } from "@/components/ui/PriorityBadge";
@@ -11,15 +12,93 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { getSession } from "@/lib/auth/middleware";
 import { prisma } from "@/lib/db/prisma";
 
-export default async function WorkerDashboardPage() {
+function riskScore(c: {
+  priority: string;
+  status: string;
+  slaDueAt: Date | null;
+}) {
+  const priorityWeight =
+    c.priority === "Critical" ? 80 : c.priority === "High" ? 55 : c.priority === "Medium" ? 30 : 15;
+  const statusWeight = c.status === "ASSIGNED" ? 30 : c.status === "ACCEPTED" ? 25 : c.status === "IN_PROGRESS" ? 20 : 5;
+  const now = Date.now();
+  const due = c.slaDueAt?.getTime() ?? null;
+  const slaWeight =
+    due === null
+      ? 0
+      : due < now
+        ? 120
+        : due - now < 60 * 60 * 1000
+          ? 70
+          : due - now < 6 * 60 * 60 * 1000
+            ? 40
+            : due - now < 24 * 60 * 60 * 1000
+              ? 20
+              : 5;
+  return priorityWeight + statusWeight + slaWeight;
+}
+
+function nextActionLabel(status: string) {
+  if (status === "ASSIGNED") return "Accept";
+  if (status === "ACCEPTED") return "Start";
+  if (status === "IN_PROGRESS") return "Resolve";
+  return null;
+}
+
+function nextActionType(status: string) {
+  if (status === "ASSIGNED") return "ACCEPT";
+  if (status === "ACCEPTED") return "START";
+  if (status === "IN_PROGRESS") return "RESOLVE";
+  return null;
+}
+
+export default async function WorkerDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; status?: string }>;
+}) {
   const session = await getSession();
   if (!session) redirect("/login");
   if (session.role === "ADMIN") redirect("/admin/dashboard");
 
+  const sp = await searchParams;
+  const q = (sp.q ?? "").trim();
+  const statusFilter = (sp.status ?? "").trim();
+
   const complaints = await prisma.complaint.findMany({
-    where: { assignedWorkerId: session.sub, status: { in: ["ASSIGNED", "ACCEPTED", "IN_PROGRESS", "RESOLVED"] } },
-    orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
+    where: {
+      assignedWorkerId: session.sub,
+      status: statusFilter
+        ? (statusFilter as "ASSIGNED" | "ACCEPTED" | "IN_PROGRESS" | "RESOLVED" | "CLOSED")
+        : { in: ["ASSIGNED", "ACCEPTED", "IN_PROGRESS", "RESOLVED"] },
+      ...(q
+        ? {
+            OR: [
+              { title: { contains: q } },
+              { trackingId: { contains: q } },
+              { locationText: { contains: q } },
+            ],
+          }
+        : {}),
+    },
     take: 50,
+    select: {
+      id: true,
+      trackingId: true,
+      title: true,
+      status: true,
+      priority: true,
+      slaDueAt: true,
+      locationText: true,
+      gpsLat: true,
+      gpsLng: true,
+      createdAt: true,
+    },
+  });
+
+  const sorted = [...complaints].sort((a, b) => {
+    const r = riskScore({ priority: a.priority, status: a.status, slaDueAt: a.slaDueAt }) - riskScore({ priority: b.priority, status: b.status, slaDueAt: b.slaDueAt });
+    if (r !== 0) return -r;
+    return (b.createdAt?.getTime?.() ?? 0) - (a.createdAt?.getTime?.() ?? 0);
   });
 
   const assigned = complaints.filter((c) => c.status === "ASSIGNED").length;
@@ -43,22 +122,63 @@ export default async function WorkerDashboardPage() {
 
       <div className="mt-6 rounded-2xl border bg-white/70 p-4 shadow-lg backdrop-blur">
         <div className="flex items-center justify-between gap-3">
-          <div className="text-sm font-semibold">Assigned jobs</div>
-          <div className="text-xs text-muted-foreground">Tap a job to take action.</div>
+          <div>
+            <div className="text-sm font-semibold">Your work queue</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">
+              Sorted by SLA risk first. Use quick actions to avoid opening each job.
+            </div>
+          </div>
         </div>
+
+        <form className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+          <input
+            name="q"
+            defaultValue={q}
+            placeholder="Search tracking ID, title, location…"
+            className="h-10 flex-1 rounded-xl border bg-white px-3 text-sm shadow-sm"
+          />
+          <select
+            name="status"
+            defaultValue={statusFilter}
+            className="h-10 rounded-xl border bg-white px-3 text-sm shadow-sm"
+          >
+            <option value="">All</option>
+            <option value="ASSIGNED">ASSIGNED</option>
+            <option value="ACCEPTED">ACCEPTED</option>
+            <option value="IN_PROGRESS">IN_PROGRESS</option>
+            <option value="RESOLVED">RESOLVED</option>
+          </select>
+          <Button type="submit" size="sm" className="h-10">
+            Filter
+          </Button>
+        </form>
+
         <div className="mt-3 divide-y">
-          {complaints.length === 0 ? (
+          {sorted.length === 0 ? (
             <div className="py-6 text-sm text-muted-foreground">No assigned complaints.</div>
           ) : (
-            complaints.map((c) => (
+            sorted.map((c) => (
               <div key={c.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold">{c.title}</div>
+                  {c.locationText?.trim() ? (
+                    <div className="mt-1 truncate text-xs text-muted-foreground">
+                      Location: <span className="font-medium text-foreground/80">{c.locationText}</span>
+                    </div>
+                  ) : null}
                   <div className="mt-1 flex flex-wrap items-center gap-2">
                     <span className="text-xs text-muted-foreground">{c.trackingId}</span>
                     <StatusBadge status={c.status} />
                     <PriorityBadge priority={c.priority} />
                     <SlaBadge slaDueAt={c.slaDueAt ?? null} />
+                    {typeof c.gpsLat === "number" && typeof c.gpsLng === "number" ? (
+                      <span className="text-xs text-muted-foreground">
+                        GPS:{" "}
+                        <span className="font-medium text-foreground">
+                          {c.gpsLat.toFixed(4)}, {c.gpsLng.toFixed(4)}
+                        </span>
+                      </span>
+                    ) : null}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -68,6 +188,7 @@ export default async function WorkerDashboardPage() {
                       Urgent
                     </div>
                   )}
+                  <NextActionButton complaintId={c.id} status={c.status} />
                   <Button asChild size="sm" className="h-11 px-4">
                     <Link href={`/worker/complaints/${c.id}`}>Open</Link>
                   </Button>

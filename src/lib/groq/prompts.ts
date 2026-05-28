@@ -24,7 +24,7 @@ export function priorityPrompt(input: { title: string; description: string }) {
 export function routingPrompt(input: { category: string; intent: string }) {
   return {
     system: groqSystemJsonOnly,
-    user: `Select the most appropriate government agency.\nAgencies: [\"JKR\",\"Local Council\",\"Transport Ministry\"]\n\nReturn JSON:\n{\n  \"agency\": string,\n  \"reason\": string\n}\n\nContext:\nCategory: ${input.category}\nIntent: ${input.intent}\n`,
+    user: `Select the most appropriate government agency.\nAgencies: [\"JKR\",\"Local Council\",\"Transport Ministry\",\"AKSB\"]\n\nReturn JSON:\n{\n  \"agency\": string,\n  \"reason\": string\n}\n\nContext:\nCategory: ${input.category}\nIntent: ${input.intent}\n`,
   };
 }
 

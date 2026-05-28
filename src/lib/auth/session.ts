@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 
-import { WorkerRole } from "@/generated/prisma/enums";
+import { WorkerRole } from "@/generated/prisma/enums.ts";
 
 export const SESSION_COOKIE_NAME = "sispaa_session";
 
