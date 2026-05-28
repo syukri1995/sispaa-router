@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: sispaa-router-backend
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    autoDeploy: true
+    healthCheckPath: /healthz
+    buildCommand: npm ci && npm run backend:build
+    startCommand: npm run backend:start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: DB_SSL_REJECT_UNAUTHORIZED
+        value: "0"
