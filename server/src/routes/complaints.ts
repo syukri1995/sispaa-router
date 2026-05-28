@@ -225,12 +225,17 @@ complaintsRouter.post("/complaints", async (req, res) => {
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+    const code = typeof (e as { code?: unknown } | null)?.code === "string" ? ((e as { code: string }).code as string) : null;
+    const name = typeof (e as { name?: unknown } | null)?.name === "string" ? ((e as { name: string }).name as string) : null;
     // eslint-disable-next-line no-console
     console.error("POST /api/complaints failed:", e);
-    if (/DATABASE_URL is required/i.test(msg)) return res.status(500).json({ ok: false, error: "database_unconfigured" });
-    if (/Prisma|ECONN|ETIMEDOUT|getaddrinfo|Handshake|SSL|certificate/i.test(msg))
-      return res.status(500).json({ ok: false, error: "database_connection_failed" });
-    return res.status(500).json({ ok: false, error: "submit_failed" });
+    // eslint-disable-next-line no-console
+    console.log("POST /api/complaints failed (summary):", { name, code, msg });
+
+    if (/DATABASE_URL is required/i.test(msg)) return res.status(500).json({ ok: false, error: "database_unconfigured", code });
+    if (/Prisma|ECONN|ETIMEDOUT|getaddrinfo|Handshake|SSL|certificate|P10\\d\\d/i.test(msg))
+      return res.status(500).json({ ok: false, error: "database_connection_failed", code });
+    return res.status(500).json({ ok: false, error: "submit_failed", code });
   }
 });
 
